@@ -1,0 +1,7 @@
+region:asia
+genre:pop
+trendTimePeriod:360
+batchFlushTime:30
+playCountWeight:1
+mediaShareCountWeight:1
+userRatingWeight:1
