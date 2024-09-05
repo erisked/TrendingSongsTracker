@@ -8,6 +8,8 @@ public class MinHeap<T> where T : IComparable<T>, INumber<T>
     private Dictionary<string, int> elementIndexMap = new Dictionary<string, int>();
     private int k;
 
+    private static readonly object heapLock = new object();
+
     public MinHeap(int k)
     {
         this.k = k;
@@ -57,30 +59,33 @@ public class MinHeap<T> where T : IComparable<T>, INumber<T>
     }
     public string Update(string key, T incrementValue)
     {
-        string removedKey = "";
-        if (!elementIndexMap.ContainsKey(key))
+        lock(heapLock)
         {
-            removedKey = Insert(key, incrementValue);
-        }
-
-        int index = elementIndexMap[key];
-        T oldValue = heap[index].Value;
-        var newValue = oldValue + incrementValue;
-        heap[index] = (newValue, key);
-
-        if (newValue.CompareTo(oldValue) < 0)
-        {
-            while (index != 0 && heap[Parent(index)].Value.CompareTo(heap[index].Value) > 0)
+            string removedKey = "";
+            if (!elementIndexMap.ContainsKey(key))
             {
-                Swap(index, Parent(index));
-                index = Parent(index);
+                removedKey = Insert(key, incrementValue);
             }
+
+            int index = elementIndexMap[key];
+            T oldValue = heap[index].Value;
+            var newValue = oldValue + incrementValue;
+            heap[index] = (newValue, key);
+
+            if (newValue.CompareTo(oldValue) < 0)
+            {
+                while (index != 0 && heap[Parent(index)].Value.CompareTo(heap[index].Value) > 0)
+                {
+                    Swap(index, Parent(index));
+                    index = Parent(index);
+                }
+            }
+            else
+            {
+                Heapify(index);
+            }
+            return removedKey;
         }
-        else
-        {
-            Heapify(index);
-        }
-        return removedKey;
     }
 
     private string RemoveMin()
@@ -129,9 +134,15 @@ public class MinHeap<T> where T : IComparable<T>, INumber<T>
     public List<string> GetSortedList()
     {
         var sortedList = new List<string>();
-        var tempHeap = new MinHeap<T>(k);
 
-        foreach (var item in heap)
+        List<(T Value, string Key)>? heapCopy;
+        lock (heapLock)
+        {
+            heapCopy = heap.ToList(); // Create a copy of the heap
+        }
+
+        var tempHeap = new MinHeap<T>(k);
+        foreach (var item in heapCopy)
         {
             tempHeap.Insert(item.Key, item.Value);
         }
@@ -140,6 +151,7 @@ public class MinHeap<T> where T : IComparable<T>, INumber<T>
         {
             sortedList.Add(tempHeap.RemoveMin());
         }
+
 
         return sortedList;
     }
